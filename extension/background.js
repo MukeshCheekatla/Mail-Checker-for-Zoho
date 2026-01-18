@@ -127,6 +127,7 @@ async function checkMail(force = false, retryCount = 0) {
             throw new Error("Invalid response format: missing unread count");
         }
 
+
         const settings = (await api.storage.local.get("settings")).settings || {};
 
         // Badge logic
@@ -136,16 +137,19 @@ async function checkMail(force = false, retryCount = 0) {
             updateBadge("");
         }
 
-        // Notification logic
-        if (settings.enableNotifications !== false) {
-            handleNotification(unread, data.lastUnread, data.lastNotificationTime);
-        }
+        // Capture previous value before updating storage
+        const previousUnread = data.lastUnread;
 
-        // Save state and clear error
+        // Save state FIRST (before notification logic)
         await api.storage.local.set({
             lastUnread: unread,
             authError: false
         });
+
+        // Notification logic AFTER state is stable
+        if (settings.enableNotifications !== false) {
+            handleNotification(unread, previousUnread, data.lastNotificationTime);
+        }
 
         // Ensure alarm is running (Start it now that we have success)
         const alarm = await api.alarms.get(ALARM_NAME);
@@ -197,9 +201,9 @@ function handleNotification(current, previous, lastNotifyTime) {
     // Notify only if unread count increased
     if (current <= previous) return;
 
-    // Rate limit notifications (max 1 per 5 mins)
+    // Rate limit notifications (60s for testing, can increase to 5 mins later)
     const now = Date.now();
-    if (lastNotifyTime && (now - lastNotifyTime < 5 * 60 * 1000)) return;
+    if (lastNotifyTime && (now - lastNotifyTime < 60 * 1000)) return;
 
     api.notifications.create(NOTIFICATION_ID, {
         type: "basic",
