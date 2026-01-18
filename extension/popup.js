@@ -15,13 +15,6 @@ function clearContent(element) {
     }
 }
 
-// Helper to decode HTML entities (fixes &quot; etc.)
-function decodeHTML(html) {
-    const txt = document.createElement('textarea');
-    txt.innerHTML = html;
-    return txt.value;
-}
-
 // Theme management
 function initTheme() {
     const savedTheme = localStorage.getItem("theme") || "default";
@@ -348,7 +341,7 @@ async function renderList(items) {
 
         const senderSpan = document.createElement("span");
         senderSpan.className = "sender";
-        senderSpan.textContent = decodeHTML(item.fromName || item.fromEmail);
+        senderSpan.textContent = item.fromName || item.fromEmail || '';
 
         const timeSpan = document.createElement("span");
         timeSpan.className = "time";
@@ -360,7 +353,7 @@ async function renderList(items) {
         // Subject
         const subjectDiv = document.createElement("div");
         subjectDiv.className = "subject";
-        subjectDiv.textContent = decodeHTML(item.subject);
+        subjectDiv.textContent = item.subject || '';
 
         contentDiv.appendChild(topRow);
         contentDiv.appendChild(subjectDiv);
@@ -369,7 +362,7 @@ async function renderList(items) {
         if (settings.showSnippets !== false) {
             const snippetDiv = document.createElement("div");
             snippetDiv.className = "snippet";
-            snippetDiv.textContent = decodeHTML(item.snippet || '');
+            snippetDiv.textContent = item.snippet || '';
             contentDiv.appendChild(snippetDiv);
         }
 

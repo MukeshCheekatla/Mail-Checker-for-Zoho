@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Mail Checker for Zoho",
-  "version": "1.0",
+  "version": "1.0.1",
   "description": "Monitors unread counts for Zoho Mail via a secure backend",
   "permissions": [
     "storage",
@@ -46,7 +46,7 @@
   ],
   "browser_specific_settings": {
     "gecko": {
-      "id": "zoho-mail-counter@extensions.zoho.com",
+      "id": "mail-checker-for-zoho@mukeshdevworks",
       "strict_min_version": "109.0"
     }
   }
