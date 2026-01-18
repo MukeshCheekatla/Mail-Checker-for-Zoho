@@ -90,6 +90,14 @@ async function checkMail(force = false, retryCount = 0) {
 
         if (res.status === 401 || res.status === 403) {
             const errData = await res.json();
+
+            // Handle temporary auth degradation - keep previous badge
+            if (errData.error === "auth_degraded") {
+                console.log("Temporary auth issue, keeping previous badge");
+                updateBadge(badgeState.text, badgeState.color);
+                return;
+            }
+
             if (errData.error === "re_auth_required") {
                 // Retry once before validating the failure (handles backend cold starts/hiccups)
                 if (retryCount < 1) {
