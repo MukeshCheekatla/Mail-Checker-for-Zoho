@@ -191,15 +191,13 @@ function handleBadgeUpdate(current) {
 }
 
 function handleNotification(current, previous, lastNotifyTime) {
-    // Rule: Do not notify on startup (if previous is unknown)
+    // Do not notify on first-ever fetch
     if (previous === undefined) return;
 
-    // Rule: Notify only on transition: previousUnread = 0 and currentUnread > 0
-    // (This also suppresses notification if count increases from 5 to 6)
-    const isTransition = previous === 0 && current > 0;
-    if (!isTransition) return;
+    // Notify only if unread count increased
+    if (current <= previous) return;
 
-    // Rule: Rate limit notifications (max 1 per 5 mins)
+    // Rate limit notifications (max 1 per 5 mins)
     const now = Date.now();
     if (lastNotifyTime && (now - lastNotifyTime < 5 * 60 * 1000)) return;
 
