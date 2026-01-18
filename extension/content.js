@@ -1,12 +1,19 @@
 const api = typeof browser !== "undefined" ? browser : chrome;
 
-// Listen for messages from the web page (Universal Bridge)
+// Listen for messages from the web page (OAuth callback bridge)
 window.addEventListener("message", (event) => {
-    // Security check: only accept messages from the window itself
+    // Accept messages only from our backend origin
+    if (event.origin !== "https://zoho-mail-backend-d4uw.onrender.com") return;
     if (event.source !== window) return;
 
-    if (event.data && event.data.type === "ZOHO_AUTH_TOKEN" && event.data.token) {
-        console.log("Content script received token, forwarding to background...");
+    // Validate token structure
+    if (
+        event.data &&
+        event.data.type === "ZOHO_AUTH_TOKEN" &&
+        typeof event.data.token === "string" &&
+        event.data.token.length > 20
+    ) {
+        console.log("Content script received valid token, forwarding to background...");
         api.runtime.sendMessage(event.data, (response) => {
             console.log("Background response:", response);
         });
