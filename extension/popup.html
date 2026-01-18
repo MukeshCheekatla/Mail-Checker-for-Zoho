@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    :root {
+      --zoho-blue: #1178D2;
+      --zoho-red: #EF4444;
+      --text-main: #E2E8F0;
+      --text-sub: #94A3B8;
+      --bg-body: #0F172A;
+      --bg-header: #1E293B;
+      --bg-light: #334155;
+      --border-color: #334155;
+      --user-bar-bg: #1E293B;
+      --mail-hover: #1E293B;
+      --mail-unread-bg: #0F172A;
+    }
+
+    [data-theme="light-popup"] {
+      --text-main: #18181B;
+      --text-sub: #71717A;
+      --bg-body: #FFFFFF;
+      --bg-header: #F8FAFC;
+      --bg-light: #F1F5F9;
+      --border-color: #E2E8F0;
+      --user-bar-bg: #F8FAFC;
+      --mail-hover: #F1F5F9;
+      --mail-unread-bg: #FFFFFF;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; transition: background-color 0.2s, color 0.2s; }
+
+    body {
+      width: 600px;
+      max-width: 600px;
+      min-height: 350px;
+      max-height: 500px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg-body);
+      color: var(--text-main);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--border-color);
+    }
+
+    .brand-header {
+      height: 52px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--bg-header);
+      flex-shrink: 0;
+    }
+
+    .brand-left { display: flex; align-items: center; gap: 10px; color: var(--zoho-blue); }
+    .brand-name { font-size: 19px; font-weight: 400; color: var(--text-main); }
+
+    .user-account-bar {
+      margin: 12px 16px;
+      padding: 8px 12px;
+      background: var(--user-bar-bg);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid var(--border-color);
+      flex-shrink: 0;
+      gap: 12px;
+    }
+
+    .user-info { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+    .user-avatar {
+      width: 34px; height: 34px;
+      background: var(--zoho-blue);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #FFFFFF;
+      font-size: 13px;
+      flex-shrink: 0;
+      border: 2px solid var(--bg-body);
+      position: relative;
+    }
+
+    .status-indicator {
+      position: absolute;
+      bottom: -1px;
+      left: -1px;
+      width: 10px;
+      height: 10px;
+      background: #22C55E; /* Online Green */
+      border: 2px solid var(--user-bar-bg);
+      border-radius: 50%;
+      transition: background-color 0.3s;
+    }
+    .status-indicator.offline {
+      background: #94A3B8; /* Stale Gray */
+    }
+    .user-email {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      word-break: break-all;
+    }
+    .account-meta { 
+      display: flex; 
+      align-items: center;
+      gap: 10px;
+      min-width: 0; 
+      flex: 1;
+    }
+
+    .folder-select {
+      background: var(--bg-body);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--text-main);
+      padding: 4px 12px;
+      cursor: pointer;
+      outline: none;
+      font-weight: 700;
+      width: fit-content;
+      max-width: 150px;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231178D2' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'%3E%3C/path%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      padding-right: 28px;
+    }
+    .folder-select:hover { border-color: var(--zoho-blue); }
+
+    .unread-badge {
+      background: var(--zoho-blue);
+      color: #FFFFFF;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 4px 14px;
+      border-radius: 20px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .header-actions { display: flex; align-items: center; gap: 4px; position: relative; }
+    .icon-btn {
+      width: 34px; height: 34px;
+      border: none;
+      background: transparent;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-sub);
+      cursor: pointer;
+    }
+    .icon-btn:hover { background: var(--bg-light); color: var(--zoho-blue); }
+
+    .dropdown-menu {
+      position: absolute;
+      top: 42px; right: 0;
+      width: 140px;
+      background: var(--bg-header);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+      display: none;
+      flex-direction: column;
+      padding: 6px 0;
+      z-index: 100;
+    }
+    .dropdown-menu.show { display: flex; }
+    .menu-item {
+      padding: 10px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      color: var(--text-main);
+    }
+    .menu-item:hover { background: var(--bg-light); color: var(--zoho-blue); }
+    .menu-item.danger { color: var(--zoho-red); font-weight: 600; }
+
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .mail-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-color);
+      cursor: pointer;
+      position: relative;
+      background: var(--mail-unread-bg);
+    }
+    .mail-item:hover { background: var(--mail-hover); }
+    .mail-item::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 4px;
+      background: var(--zoho-blue);
+    }
+
+    .mail-avatar {
+      width: 34px; height: 34px;
+      background: var(--bg-light);
+      color: var(--zoho-blue);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .mail-content {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .mail-row-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sender {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .time {
+      font-size: 12px;
+      color: var(--text-sub);
+      white-space: nowrap;
+      font-weight: 600;
+    }
+
+    .subject {
+      font-weight: 500;
+      color: var(--text-main);
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .snippet {
+      font-size: 13px;
+      color: var(--text-sub);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+
+    .auth-required {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 40px;
+      gap: 20px;
+    }
+    .auth-required .icon {
+      font-size: 48px;
+      opacity: 0.5;
+    }
+    .auth-required h2 {
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .auth-required p {
+      font-size: 15px;
+      color: var(--text-sub);
+      text-align: center;
+      line-height: 1.5;
+    }
+    .btn-primary {
+      background: var(--zoho-blue);
+      color: #FFFFFF;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-primary:hover {
+      background: #0d5fa5;
+    }
+
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      text-align: center;
+      color: var(--text-sub);
+      gap: 8px;
+    }
+
+    .load-more-btn {
+      width: 100%;
+      padding: 14px;
+      background: transparent;
+      border: none;
+      color: var(--zoho-blue);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border-top: 1px solid var(--border-color);
+    }
+    .load-more-btn:hover {
+      background: var(--bg-light);
+    }
+    .load-more-btn.loading .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--zoho-blue);
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 0.6s linear infinite;
+      display: inline-block;
+    }
+    .load-more-btn .spinner { display: none; }
+    .load-more-btn.loading .text { opacity: 0.5; }
+
+    #loadingOverlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    .loading-spin { animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite; color: var(--zoho-blue); }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
+  </style>
+</head>
+<body data-theme="default">
+
+  <div id="loadingOverlay">
+    <div style="background: var(--bg-header); padding: 30px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 20px 50px rgba(0,0,0,0.5); display: flex; flex-direction: column; align-items: center; text-align: center;">
+      <svg class="loading-spin" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+      </svg>
+      <p style="font-size: 15px; margin-top: 16px; font-weight: 700; color: var(--zoho-blue);">Updating...</p>
+    </div>
+  </div>
+
+  <header class="brand-header">
+    <div class="brand-left">
+      <img src="icons/icon-128.png" width="22" height="22" alt="Mail Checker Icon" style="display: block;">
+      <span class="brand-name">Mail Checker for Zoho</span>
+    </div>
+    <div class="header-actions">
+      <button id="themeToggle" class="icon-btn" title="Toggle Theme">
+        <svg id="themeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+      </button>
+      <button id="refreshBtn" class="icon-btn" title="Refresh">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+      </button>
+      <div style="position: relative;">
+        <button id="menuBtn" class="icon-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/>
+          </svg>
+        </button>
+        <div id="dropdownMenu" class="dropdown-menu">
+          <div class="menu-item" id="settingsBtn">Settings</div>
+          <div class="menu-item danger" id="signOutBtn">Sign Out</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div id="userBar" class="user-account-bar" style="display: none;">
+    <div class="user-info">
+      <div class="user-avatar" id="userAvatar">--<div class="status-indicator"></div></div>
+      <div class="account-meta">
+        <div class="user-email" id="userEmail"></div>
+        <select class="folder-select" id="folderSelect">
+          <option value="inbox">Inbox</option>
+        </select>
+      </div>
+    </div>
+    <div class="unread-badge" id="unreadBadge">-- Unread</div>
+  </div>
+
+  <main class="content">
+    <div id="mainContent"></div>
+  </main>
+
+  <script src="popup.js"></script>
+</body>
+</html>

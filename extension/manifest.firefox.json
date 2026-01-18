@@ -1,0 +1,54 @@
+{
+  "manifest_version": 2,
+  "name": "Mail Checker for Zoho",
+  "version": "1.0",
+  "description": "Monitors unread counts for Zoho Mail via a secure backend",
+  "permissions": [
+    "storage",
+    "alarms",
+    "notifications",
+    "https://zoho-mail-backend-d4uw.onrender.com/*"
+  ],
+  "browser_action": {
+    "default_title": "Zoho Mail",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "scripts": [
+      "background.js"
+    ],
+    "persistent": false
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "96": "icons/icon-96.png",
+    "128": "icons/icon-128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://zoho-mail-backend-d4uw.onrender.com/extension-bridge*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    "callback.html"
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "zoho-mail-counter@extensions.zoho.com",
+      "strict_min_version": "142.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
+    }
+  }
+}

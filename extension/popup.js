@@ -1,0 +1,472 @@
+const api = typeof browser !== "undefined" ? browser : chrome;
+
+const BACKEND_URL = "https://zoho-mail-backend-d4uw.onrender.com";
+
+// Request deduplication
+let listLoading = false;
+let foldersLoading = false;
+let lastListLoad = 0;
+const LIST_DEBOUNCE_MS = 500; // Min 500ms between list loads
+
+// Helper to clear syntax safety
+function clearContent(element) {
+    while (element.firstChild) {
+        element.removeChild(element.firstChild);
+    }
+}
+
+// Helper to decode HTML entities (fixes &quot; etc.)
+function decodeHTML(html) {
+    const txt = document.createElement('textarea');
+    txt.innerHTML = html;
+    return txt.value;
+}
+
+// Theme management
+function initTheme() {
+    const savedTheme = localStorage.getItem("theme") || "default";
+    document.body.setAttribute("data-theme", savedTheme);
+}
+
+function toggleTheme() {
+    const current = document.body.getAttribute("data-theme");
+    const next = current === "light-popup" ? "default" : "light-popup";
+    document.body.setAttribute("data-theme", next);
+    localStorage.setItem("theme", next);
+}
+
+// Time formatting
+function formatMailDate(timestamp) {
+    const d = new Date(timestamp);
+    const now = new Date();
+
+    if (d.toDateString() === now.toDateString()) {
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).toLowerCase();
+    }
+
+    const yesterday = new Date();
+    yesterday.setDate(now.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString()) {
+        return "Yesterday";
+    }
+
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
+// Update online/offline status indicator
+function updateStatus() {
+    const indicator = document.querySelector(".status-indicator");
+    if (!indicator) return;
+
+    if (navigator.onLine) {
+        indicator.classList.remove("offline");
+    } else {
+        indicator.classList.add("offline");
+    }
+}
+
+// Update UI state
+async function updateUI() {
+    const data = await api.storage.local.get(["lastUnread", "authError", "jwt", "accountEmail"]);
+
+    const userBar = document.getElementById("userBar");
+    const mainContent = document.getElementById("mainContent");
+    const userEmail = document.getElementById("userEmail");
+    const userAvatar = document.getElementById("userAvatar");
+    const unreadBadge = document.getElementById("unreadBadge");
+
+    if (!data.jwt) {
+        // No account at all
+        userBar.style.display = "none";
+        clearContent(mainContent);
+
+        const authDiv = document.createElement("div");
+        authDiv.className = "auth-required";
+
+        const iconDiv = document.createElement("div");
+        iconDiv.className = "icon";
+        iconDiv.textContent = "🔐";
+
+        const h2 = document.createElement("h2");
+        h2.textContent = "Connect Your Zoho Account";
+
+        const p = document.createElement("p");
+        p.textContent = "Connect your Zoho Mail account to view your unread messages directly from your browser.";
+
+        const btn = document.createElement("button");
+        btn.id = "connectBtn";
+        btn.className = "btn-primary";
+        btn.textContent = "Connect Zoho Mail";
+        btn.onclick = async () => {
+            // Send session_id to backend via OAuth state
+            const { session_id } = await api.storage.local.get('session_id');
+            api.tabs.create({ url: `${BACKEND_URL}/auth/zoho?session_id=${session_id}` });
+            window.close();
+        };
+
+        authDiv.appendChild(iconDiv);
+        authDiv.appendChild(h2);
+        authDiv.appendChild(p);
+        authDiv.appendChild(btn);
+        mainContent.appendChild(authDiv);
+
+    } else if (data.authError) {
+        // We have a token but backend says it's invalid
+        userBar.style.display = "none";
+        clearContent(mainContent);
+
+        const isFirstSetup = (data.lastUnread === undefined);
+        const titleText = isFirstSetup ? "Setup Incomplete" : "Authentication Problem";
+        const descText = isFirstSetup
+            ? "We couldn't finalize your connection. Please check your internet and try again."
+            : "There was a problem verifying your account. This could be a temporary issue.";
+        const actionText = isFirstSetup ? "Try Setup Again" : "Re-connect";
+
+        const authDiv = document.createElement("div");
+        authDiv.className = "auth-required";
+
+        const iconDiv = document.createElement("div");
+        iconDiv.className = "icon";
+        iconDiv.textContent = isFirstSetup ? "🔌" : "⚠️";
+
+        const h2 = document.createElement("h2");
+        h2.textContent = titleText;
+
+        const p = document.createElement("p");
+        p.textContent = descText;
+
+        const btnContainer = document.createElement("div");
+        btnContainer.style.display = "flex";
+        btnContainer.style.gap = "10px";
+
+        const retryBtn = document.createElement("button");
+        retryBtn.id = "retryBtn";
+        retryBtn.className = "btn-primary";
+        retryBtn.style.background = "var(--text-sub)";
+        retryBtn.textContent = "Try Again";
+        retryBtn.onclick = handleRefresh;
+
+        const reconnectBtn = document.createElement("button");
+        reconnectBtn.id = "reconnectBtn";
+        reconnectBtn.className = "btn-primary";
+        reconnectBtn.textContent = actionText;
+        reconnectBtn.onclick = async () => {
+            // Send session_id to backend via OAuth state
+            const { session_id } = await api.storage.local.get('session_id');
+            api.tabs.create({ url: `${BACKEND_URL}/auth/zoho?session_id=${session_id}` });
+            window.close();
+        };
+
+        btnContainer.appendChild(retryBtn);
+        btnContainer.appendChild(reconnectBtn);
+
+        authDiv.appendChild(iconDiv);
+        authDiv.appendChild(h2);
+        authDiv.appendChild(p);
+        authDiv.appendChild(btnContainer);
+        mainContent.appendChild(authDiv);
+
+    } else {
+        // Authenticated - show user bar and mail list
+        userBar.style.display = "flex";
+
+        // Apply visibility settings
+        const settings = (await api.storage.local.get("settings")).settings || {};
+
+        // Hide folder dropdown (coming soon)
+        const folderSelect = document.getElementById("folderSelect");
+        if (folderSelect) {
+            folderSelect.style.display = "none";
+        }
+
+        // Show only Zoho email (no name)
+        if (data.accountEmail) {
+            userEmail.textContent = data.accountEmail;
+            userEmail.style.cursor = "pointer";
+            userEmail.title = "Open Inbox";
+            userEmail.onclick = () => {
+                api.tabs.create({ url: "https://mail.zoho.com/zm/" });
+                window.close();
+            };
+
+            const initial = data.accountEmail.substring(0, 1).toUpperCase();
+
+            // Safer way to verify if we just need to replace text
+            if (userAvatar.firstChild && userAvatar.firstChild.nodeType === Node.TEXT_NODE) {
+                userAvatar.firstChild.textContent = initial;
+            } else {
+                userAvatar.textContent = initial; // Reset content if complex
+            }
+        }
+
+        // Update unread badge
+        const count = data.lastUnread !== undefined ? data.lastUnread : "--";
+        unreadBadge.textContent = `${count} Unread`;
+
+        // Load mail list and folders
+        loadList();
+        updateStatus();
+    }
+}
+
+// Load mail list
+async function loadList(folderId = null) {
+    // Deduplication: prevent concurrent requests
+    if (listLoading) {
+        console.log("[loadList] Already loading, skipping");
+        return;
+    }
+
+    // Debouncing: prevent requests within 500ms
+    const now = Date.now();
+    if (!folderId && now - lastListLoad < LIST_DEBOUNCE_MS) {
+        console.log("[loadList] Too soon since last load, skipping");
+        return;
+    }
+
+    listLoading = true;
+    if (!folderId) lastListLoad = now;
+
+    try {
+        const { jwt, lastItems, accountEmail } = await api.storage.local.get(["jwt", "lastItems", "accountEmail"]);
+
+        // Optimistic render only on first load
+        if (lastItems && lastItems.length > 0 && !folderId) {
+            renderList(lastItems);
+        }
+
+        if (!jwt) return;
+
+        const url = new URL(`${BACKEND_URL}/mail/unread/list`);
+        url.searchParams.append("limit", "50");
+        url.searchParams.append("refresh", "true");
+        if (folderId) url.searchParams.append("folder", folderId);
+
+        const res = await fetch(url, {
+            headers: { Authorization: `Bearer ${jwt}` }
+        });
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+
+        if (!folderId) {
+            await api.storage.local.set({
+                lastItems: data.items,
+                accountEmail: data.account?.email
+            });
+        }
+
+        renderList(data.items);
+
+        if (data.account?.email) {
+            updateUI();
+        }
+    } catch (err) {
+        console.error("Failed to load mail list:", err);
+    } finally {
+        listLoading = false;
+    }
+}
+
+// Load folders
+async function loadFolders() {
+    const { jwt } = await api.storage.local.get(["jwt"]);
+    if (!jwt) return;
+
+    try {
+        const res = await fetch(`${BACKEND_URL}/mail/folders`, {
+            headers: { Authorization: `Bearer ${jwt}` }
+        });
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+        const select = document.getElementById("folderSelect");
+        if (!select) return;
+
+        const currentVal = select.value;
+        clearContent(select);
+
+        data.folders.forEach(folder => {
+            const option = document.createElement("option");
+            option.value = folder.id;
+            option.textContent = folder.unread > 0 ? `${folder.name} (${folder.unread})` : folder.name;
+            if (folder.id === currentVal) option.selected = true;
+            select.appendChild(option);
+        });
+    } catch (err) {
+        console.error("Failed to load folders:", err);
+    }
+}
+
+// Render mail list (DOM Safe)
+async function renderList(items) {
+    const settings = (await api.storage.local.get("settings")).settings || {};
+    const list = document.getElementById("mainContent");
+    clearContent(list);
+
+    if (!items || items.length === 0) {
+        const emptyState = document.createElement("div");
+        emptyState.className = "empty-state";
+
+        const iconDiv = document.createElement("div");
+        iconDiv.style.fontSize = "36px";
+        iconDiv.textContent = "📩";
+
+        const msgP = document.createElement("p");
+        msgP.style.fontWeight = "700";
+        msgP.style.fontSize = "16px";
+        msgP.textContent = "All caught up!";
+
+        emptyState.appendChild(iconDiv);
+        emptyState.appendChild(msgP);
+        list.appendChild(emptyState);
+        return;
+    }
+
+    items.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "mail-item";
+
+        const avatarInitial = (item.fromName || item.fromEmail || "U")[0].toUpperCase();
+        const timeStr = formatMailDate(item.receivedAt);
+
+        // Avatar
+        const avatarDiv = document.createElement("div");
+        avatarDiv.className = "mail-avatar";
+        avatarDiv.textContent = avatarInitial;
+
+        // Content
+        const contentDiv = document.createElement("div");
+        contentDiv.className = "mail-content";
+
+        // Top Row
+        const topRow = document.createElement("div");
+        topRow.className = "mail-row-top";
+
+        const senderSpan = document.createElement("span");
+        senderSpan.className = "sender";
+        senderSpan.textContent = decodeHTML(item.fromName || item.fromEmail);
+
+        const timeSpan = document.createElement("span");
+        timeSpan.className = "time";
+        timeSpan.textContent = timeStr;
+
+        topRow.appendChild(senderSpan);
+        topRow.appendChild(timeSpan);
+
+        // Subject
+        const subjectDiv = document.createElement("div");
+        subjectDiv.className = "subject";
+        subjectDiv.textContent = decodeHTML(item.subject);
+
+        contentDiv.appendChild(topRow);
+        contentDiv.appendChild(subjectDiv);
+
+        // Snippet (Optional)
+        if (settings.showSnippets !== false) {
+            const snippetDiv = document.createElement("div");
+            snippetDiv.className = "snippet";
+            snippetDiv.textContent = decodeHTML(item.snippet || '');
+            contentDiv.appendChild(snippetDiv);
+        }
+
+        div.appendChild(avatarDiv);
+        div.appendChild(contentDiv);
+
+        div.onclick = () => {
+            api.tabs.create({ url: item.link });
+            window.close();
+        };
+        list.appendChild(div);
+    });
+}
+
+// Refresh handler
+async function handleRefresh() {
+    const refreshBtn = document.getElementById("refreshBtn");
+    const overlay = document.getElementById("loadingOverlay");
+
+    refreshBtn.style.animation = "spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite";
+    overlay.style.display = "flex";
+
+    api.runtime.sendMessage({ action: "refresh" }, () => {
+        setTimeout(async () => {
+            overlay.style.display = "none";
+            refreshBtn.style.animation = "none";
+            await updateUI();
+        }, 800);
+    });
+}
+
+// Event listeners
+document.getElementById("themeToggle").addEventListener("click", toggleTheme);
+document.getElementById("refreshBtn").addEventListener("click", handleRefresh);
+
+document.getElementById("menuBtn").addEventListener("click", (e) => {
+    e.stopPropagation();
+    document.getElementById("dropdownMenu").classList.toggle("show");
+});
+
+window.addEventListener("click", () => {
+    document.getElementById("dropdownMenu").classList.remove("show");
+});
+
+document.getElementById("settingsBtn").addEventListener("click", () => {
+    window.location.href = "settings.html";
+});
+
+document.getElementById("signOutBtn").addEventListener("click", () => {
+    api.tabs.create({
+        url: "https://accounts.zoho.in/home#sessions/userconnectedapps",
+        active: true
+    });
+
+    const mainContent = document.getElementById("mainContent");
+    clearContent(mainContent);
+
+    const disconnectDiv = document.createElement("div");
+    disconnectDiv.className = "auth-required";
+
+    const iconDiv = document.createElement("div");
+    iconDiv.className = "icon";
+    iconDiv.textContent = "⏳";
+
+    const h2 = document.createElement("h2");
+    h2.textContent = "Disconnecting...";
+
+    const p = document.createElement("p");
+    p.textContent = "Please revoke access on the Zoho page that just opened. The extension will automatically detect the change.";
+
+    disconnectDiv.appendChild(iconDiv);
+    disconnectDiv.appendChild(h2);
+    disconnectDiv.appendChild(p);
+
+    mainContent.appendChild(disconnectDiv);
+});
+
+// Storage change listener
+api.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && (changes.lastUnread || changes.authError || changes.jwt)) {
+        updateUI();
+    }
+});
+
+// Initialize
+document.addEventListener("DOMContentLoaded", () => {
+    initTheme();
+    updateUI();
+    loadList(); // Edge fix: always fetch list on popup open
+
+    const folderSelect = document.getElementById("folderSelect");
+    if (folderSelect) {
+        folderSelect.addEventListener("change", (e) => {
+            loadList(e.target.value);
+        });
+    }
+
+    updateStatus();
+    window.addEventListener("online", updateStatus);
+    window.addEventListener("offline", updateStatus);
+});
