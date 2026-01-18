@@ -173,6 +173,7 @@ async function updateUI() {
         // Apply visibility settings
         const settings = (await api.storage.local.get("settings")).settings || {};
 
+        // Folder support reserved for future release
         // Hide folder dropdown (coming soon)
         const folderSelect = document.getElementById("folderSelect");
         if (folderSelect) {
@@ -269,7 +270,7 @@ async function loadList(folderId = null) {
     }
 }
 
-// Load folders
+// Load folders (reserved for future release)
 async function loadFolders() {
     const { jwt } = await api.storage.local.get(["jwt"]);
     if (!jwt) return;
@@ -376,8 +377,13 @@ async function renderList(items) {
         div.appendChild(contentDiv);
 
         div.onclick = () => {
-            api.tabs.create({ url: item.link });
-            window.close();
+            // Security: Only open Zoho mail links
+            if (item.link && item.link.startsWith("https://mail.zoho.")) {
+                api.tabs.create({ url: item.link });
+                window.close();
+            } else {
+                console.warn("Invalid mail link rejected:", item.link);
+            }
         };
         list.appendChild(div);
     });
