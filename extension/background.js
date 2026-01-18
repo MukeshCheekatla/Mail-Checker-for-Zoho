@@ -53,22 +53,7 @@ api.runtime.onStartup.addListener(async () => {
         const settings = (await api.storage.local.get("settings")).settings || { refreshInterval: 5 };
         api.alarms.create(ALARM_NAME, { periodInMinutes: settings.refreshInterval || 5 });
     }
-});
-
-// Listen for external messages from backend bridge page
-api.runtime.onMessageExternal.addListener(
-    (message, sender, sendResponse) => {
-        if (message.type === "ZOHO_AUTH_TOKEN" && message.token) {
-            api.storage.local.set({
-                jwt: message.token,
-                authError: false
-            }, () => {
-                checkMail(true);
-            });
-            sendResponse({ ok: true });
-        }
-    }
-);
+})
 
 // Handle icon click (Manual Refresh)
 if (api.action) {
@@ -253,6 +238,13 @@ api.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }
 
     if (msg.type === "ZOHO_AUTH_TOKEN" && msg.token) {
+        // Optional: Validate sender origin (extra security layer)
+        if (sender.url && !sender.url.startsWith(BACKEND_URL)) {
+            console.warn("Token rejected: invalid sender origin", sender.url);
+            sendResponse({ success: false, error: "invalid_origin" });
+            return true;
+        }
+
         api.storage.local.set({
             jwt: msg.token,
             authError: false
