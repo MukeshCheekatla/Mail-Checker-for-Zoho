@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
   "name": "Mail Checker for Zoho",
-  "version": "1.0",
-  "description": "Monitors unread counts for Zoho Mail via a secure backend",
+  "version": "1.0.1",
+  "description": "Get instant notifications when new Zoho Mail arrives—right in your browser toolbar",
   "permissions": [
     "storage",
     "alarms",
@@ -42,8 +42,8 @@
   ],
   "browser_specific_settings": {
     "gecko": {
-      "id": "mail-checker-for-zoho@mukeshdevworks",
-      "strict_min_version": "109.0",
+      "id": "zoho-mail-counter@extensions.zoho.com",
+      "strict_min_version": "140.0",
       "data_collection_permissions": {
         "required": [
           "none"
