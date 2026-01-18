@@ -240,7 +240,7 @@ async function loadList(folderId = null) {
 
         const url = new URL(`${BACKEND_URL}/mail/unread/list`);
         url.searchParams.append("limit", "50");
-        url.searchParams.append("refresh", "true");
+        // Use cached data from background poll (no forced refresh)
         if (folderId) url.searchParams.append("folder", folderId);
 
         const res = await fetch(url, {
