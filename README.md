@@ -13,8 +13,8 @@
   <a href="https://addons.mozilla.org/en-US/firefox/addon/mail-checker-for-zoho/">
     <img src="https://img.shields.io/badge/Firefox-Download-orange?logo=firefox" alt="Firefox Add-on">
   </a>
-  <a href="#">
-    <img src="https://img.shields.io/badge/Chrome-Coming%20Soon-gray?logo=googlechrome" alt="Chrome Web Store">
+  <a href="https://chromewebstore.google.com/detail/mail-checker-for-zoho/affjmfagkgljcidafnkhhjfaaiidincj">
+    <img src="https://img.shields.io/badge/Chrome-Download-blue?logo=googlechrome&logoColor=white" alt="Chrome Web Store">
   </a>
   <a href="#">
     <img src="https://img.shields.io/badge/Edge-Coming%20Soon-gray?logo=microsoftedge" alt="Microsoft Edge">
@@ -38,8 +38,11 @@
 ### Firefox
 [![Get it for Firefox](https://img.shields.io/badge/Firefox-Download-orange?style=for-the-badge&logo=firefox)](https://addons.mozilla.org/en-US/firefox/addon/mail-checker-for-zoho/)
 
-### Chrome & Edge
-Coming soon to Chrome Web Store and Microsoft Edge Add-ons!
+### Chrome
+[![Get it for Chrome](https://img.shields.io/badge/Chrome-Download-blue?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/mail-checker-for-zoho/affjmfagkgljcidafnkhhjfaaiidincj)
+
+### Edge
+Coming soon to Microsoft Edge Add-ons!
 
 ## 🖼️ Screenshots
 
