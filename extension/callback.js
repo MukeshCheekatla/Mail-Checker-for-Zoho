@@ -3,7 +3,7 @@ const api = typeof browser !== "undefined" ? browser : chrome;
 (async function () {
   try {
     // Security check: Only accept tokens from our backend
-    if (!document.referrer.startsWith("https://zoho-mail-backend-d4uw.onrender.com")) {
+    if (!document.referrer.startsWith("https://api.mailchecker.workers.dev")) {
       console.error("Invalid referrer:", document.referrer);
       window.close();
       return;

@@ -1,6 +1,6 @@
 const api = typeof browser !== "undefined" ? browser : chrome;
 
-const BACKEND_URL = "https://zoho-mail-backend-d4uw.onrender.com";
+const BACKEND_URL = "https://api.mailchecker.workers.dev";
 
 // Request deduplication
 let listLoading = false;
@@ -456,7 +456,7 @@ api.storage.onChanged.addListener((changes, area) => {
 document.addEventListener("DOMContentLoaded", () => {
     initTheme();
     updateUI();
-    loadList(); // Edge fix: always fetch list on popup open
+    // Don't call loadList() here - it's called by updateUI() only when authenticated
 
     const folderSelect = document.getElementById("folderSelect");
     if (folderSelect) {

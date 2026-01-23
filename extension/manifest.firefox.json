@@ -1,13 +1,13 @@
 {
   "manifest_version": 2,
   "name": "Mail Checker for Zoho",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Get instant notifications when new Zoho Mail arrives—right in your browser toolbar",
   "permissions": [
     "storage",
     "alarms",
     "notifications",
-    "https://zoho-mail-backend-d4uw.onrender.com/*"
+    "https://api.mailchecker.workers.dev/*"
   ],
   "browser_action": {
     "default_title": "Mail Checker for Zoho",
@@ -29,7 +29,7 @@
   "content_scripts": [
     {
       "matches": [
-        "https://zoho-mail-backend-d4uw.onrender.com/extension-bridge*"
+        "https://api.mailchecker.workers.dev/extension-bridge*"
       ],
       "js": [
         "content.js"

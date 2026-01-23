@@ -1,6 +1,6 @@
 const api = typeof browser !== "undefined" ? browser : chrome;
 
-const BACKEND_URL = "https://zoho-mail-backend-d4uw.onrender.com";
+const BACKEND_URL = "https://api.mailchecker.workers.dev";
 const ALARM_NAME = "poll-unread";
 const NOTIFICATION_ID = "new-mail-notify";
 
@@ -89,36 +89,32 @@ async function checkMail(force = false, retryCount = 0) {
         });
 
         if (res.status === 401 || res.status === 403) {
-            const errData = await res.json();
+            const errData = await res.json().catch(() => ({ error: "unknown" }));
 
-            // Handle temporary auth degradation - keep previous badge
-            if (errData.error === "auth_degraded") {
-                console.log("Temporary auth issue, keeping previous badge");
-                updateBadge(badgeState.text, badgeState.color);
-                return;
+            // Retry once before validating the failure (handles backend cold starts/hiccups)
+            if (retryCount < 1) {
+                console.log("Auth error detected, retrying once...");
+                pollInProgress = false; // Unlock to allow retry recursion
+                await new Promise(r => setTimeout(r, 2000));
+                return checkMail(force, retryCount + 1);
             }
 
-            if (errData.error === "re_auth_required") {
-                // Retry once before validating the failure (handles backend cold starts/hiccups)
-                if (retryCount < 1) {
-                    console.log("Auth error detected, retrying once...");
-                    pollInProgress = false; // Unlock to allow retry recursion
-                    await new Promise(r => setTimeout(r, 2000));
-                    return checkMail(force, retryCount + 1);
-                }
+            // After retry, determine if this is genuine first setup or actual auth failure
+            // "New User" means lastUnread is undefined AND jwt is newly set (not a revocation)
+            const isFirstSetup = data.lastUnread === undefined;
 
-                // CRITICAL FIX: Do NOT mark authError if this is the very first setup attempt
-                // "New User" means lastUnread is undefined.
-                const isFirstSetup = data.lastUnread === undefined;
-
-                if (!isFirstSetup) {
-                    updateBadge("!", "#EF4444");
-                    api.storage.local.set({ authError: true });
-                } else {
-                    console.log("Ignoring auth error during initial setup (transient)");
-                }
-                return;
+            if (!isFirstSetup) {
+                // User had working auth before - this is revocation or token expiry
+                console.log("Auth failed: User token revoked or expired");
+                updateBadge("!", "#EF4444");
+                api.storage.local.set({ authError: true });
+            } else {
+                // First setup attempt - could be transient, but still show warning
+                console.log("Auth failed during initial setup");
+                updateBadge("!", "#FFA500"); // Orange for setup issues
+                // Don't set authError=true to allow auto-recovery
             }
+            return;
         }
 
         if (!res.ok) {
@@ -185,7 +181,20 @@ function updateBadge(text, color) {
     action.setBadgeText({ text: textStr });
 
     if (color && action.setBadgeBackgroundColor) {
-        action.setBadgeBackgroundColor({ color });
+        // Chrome requires RGB array format [R, G, B, A] or hex string
+        // Convert common colors to RGB arrays for better compatibility
+        let colorValue = color;
+        if (color === "#EF4444") colorValue = [239, 68, 68, 255]; // Red
+        else if (color === "#FFA500") colorValue = [255, 165, 0, 255]; // Orange
+        else if (color === "#1178D2") colorValue = [17, 120, 210, 255]; // Zoho Blue
+        else if (color === "#6B7280") colorValue = [107, 114, 128, 255]; // Gray (loading)
+
+        action.setBadgeBackgroundColor({ color: colorValue });
+    }
+
+    // Set badge text color to white for better visibility (Chrome 110+)
+    if (action.setBadgeTextColor) {
+        action.setBadgeTextColor({ color: [255, 255, 255, 255] }); // White
     }
 
     // Save to badgeState (except for loading indicator)
