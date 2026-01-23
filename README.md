@@ -10,6 +10,9 @@
 </p>
 
 <p align="center">
+  <a href="https://mail-checker-for-zoho.pages.dev/">
+    <img src="https://img.shields.io/badge/🌐_Website-Visit-4F46E5?style=flat" alt="Website">
+  </a>
   <a href="https://addons.mozilla.org/en-US/firefox/addon/mail-checker-for-zoho/">
     <img src="https://img.shields.io/badge/Firefox-Download-orange?logo=firefox" alt="Firefox Add-on">
   </a>
@@ -46,7 +49,11 @@ Coming soon to Microsoft Edge Add-ons!
 
 ## 🖼️ Screenshots
 
-*Coming soon*
+### Connect Your Account
+![Connect Account](screenshots/connect.png)
+
+### Main Interface
+![Main Interface](screenshots/main.png)
 
 ## 🔒 Privacy & Security
 
